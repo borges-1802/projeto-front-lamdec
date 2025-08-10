@@ -19,7 +19,7 @@ app.add_middleware(
 DATA_DIR = "data"
 
 def load_json_file(filename: str) -> Dict[Any, Any]:
-    """Carrega um arquivo JSON do diretório data/"""
+    """Carrega um arquivo JSON do diretório /data"""
     file_path = os.path.join(DATA_DIR, filename)
     try:
         with open(file_path, 'r', encoding='utf-8') as file:
@@ -73,37 +73,43 @@ def search_cda(
     order_desc: Optional[bool] = Query(False, description="Ordenação decrescente")
 ):
     """
-    Busca e filtra dados do arquivo cdas.json
+    Busca e filtra dados do arquivo cdas.json.
     """
     # Carregar dados do cdas.json
     data = load_json_file("cdas.json")
-    
-    # Assumindo que data é uma lista de registros
-    results = data if isinstance(data, list) else data.get('data', [])
-    
-    # Aplicar filtros
+
+    # Garante que data seja uma lista
+    registros = data if isinstance(data, list) else data.get('data', [])
+
+    # Filtros
     if ano is not None:
-        results = [item for item in results if item.get('ano') == ano]
-    
+        registros = [item for item in registros if int(item.get('ano', -1)) == ano]
+
     if situacao is not None:
-        results = [item for item in results if item.get('agrupamento_situacao') == situacao]
-    
+        registros = [item for item in registros if int(item.get('agrupamento_situacao', 999)) == situacao]
+
     if saldo_min is not None:
-        results = [item for item in results if item.get('saldo', 0) >= saldo_min]
-    
+        registros = [item for item in registros if float(item.get('valor_saldo_atualizado', 0)) >= saldo_min]
+
     if saldo_max is not None:
-        results = [item for item in results if item.get('saldo', 0) <= saldo_max]
-    
-    # Aplicar ordenação
-    if order_by in ['ano', 'saldo']:
-        results.sort(
-            key=lambda x: x.get(order_by, 0),
-            reverse=order_desc
+        registros = [item for item in registros if float(item.get('valor_saldo_atualizado', 0)) <= saldo_max]
+
+# Ordenação
+    if order_by in ["ano", "saldo"]:
+        if order_by == "saldo":
+            registros.sort(
+                key=lambda x: float(x.get("valor_saldo_atualizado", 0)),
+                reverse=order_desc
         )
-    
+        else:
+            registros.sort(
+                key=lambda x: int(x.get("ano", 0)),
+                reverse=order_desc
+        )
+
     return {
-        "data": results,
-        "total": len(results),
+        "data": registros,
+        "total": len(registros),
         "filters": {
             "ano": ano,
             "situacao": situacao,
@@ -113,6 +119,7 @@ def search_cda(
             "order_desc": order_desc
         }
     }
+
 
 @app.get("/resumo/arquivos")
 def listar_arquivos():
