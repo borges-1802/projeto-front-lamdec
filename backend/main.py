@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import json
 import os
 from typing import List, Optional, Dict, Any
+from collections import defaultdict
 
 app = FastAPI(title="LAMDEC Dashboard API", version="1.0.0")
 
@@ -35,17 +36,16 @@ def read_root():
     return {"message": "FastAPI do Projeto pro LAMDEC funcionando!"}
 
 # Endpoints de resumo - retornam conteúdo dos JSONs
+
 @app.get("/resumo/{arquivo}")
 def get_resumo(arquivo: str):
     """
-    Retorna o conteúdo de um arquivo JSON para gerar gráficos
-    Arquivos disponíveis: distribuicao_cdas, inscricoes_canceladas, inscricoes_quitadas,
-    inscricoes, montante_acumulado, quantidade_cdas, saldo_cdas
+    Retorna o conteúdo de um arquivo JSON: distribuicao_cdas, inscricoes_canceladas, inscricoes_quitadas,
+    inscricoes, quantidade_cdas, montante_acumulado
     """
-    # Lista de arquivos válidos (sem extensão)
     arquivos_validos = [
-        'distribuicao_cdas', 'inscricoes_canceladas', 'inscricoes_quitadas',
-        'inscricoes', 'montante_acumulado', 'quantidade_cdas', 'saldo_cdas'
+        'distribuicao_cdas','inscricoes_canceladas', 'inscricoes_quitadas', 'inscricoes',
+        'montante_acumulado', 'quantidade_cdas', 'saldo_cdas'
     ]
     
     # Remove .json se presente
@@ -62,14 +62,14 @@ def get_resumo(arquivo: str):
     data = load_json_file(arquivo_completo)
     return data
 
-# Endpoint de busca com filtros e ordenação
+# Endpoint de busca com filtros e ordenação - VERSÃO CORRIGIDA
 @app.get("/cda/search")
 def search_cda(
-    ano: Optional[int] = Query(None, description="Filtrar por ano"),
+    ano: Optional[int] = Query(None, description="Filtrar por ano (extraído do numCDA)"),
     situacao: Optional[int] = Query(None, description="Filtrar por situação (-1: Cancelada, 0: Em cobrança, 1: Quitada)"),
     saldo_min: Optional[float] = Query(None, description="Saldo mínimo"),
     saldo_max: Optional[float] = Query(None, description="Saldo máximo"),
-    order_by: Optional[str] = Query("ano", description="Ordenar por: 'ano' ou 'saldo'"),
+    order_by: Optional[str] = Query("numCDA", description="Ordenar por: 'numCDA', 'saldo', ou 'idade'"),
     order_desc: Optional[bool] = Query(False, description="Ordenação decrescente")
 ):
     """
@@ -81,30 +81,62 @@ def search_cda(
     # Garante que data seja uma lista
     registros = data if isinstance(data, list) else data.get('data', [])
 
+    # Adicionar campo 'ano' extraído do numCDA para cada registro
+    for item in registros:
+        if 'numCDA' in item and len(str(item['numCDA'])) >= 4:
+            try:
+                # Extrair primeiros 4 dígitos como ano
+                item['ano'] = int(str(item['numCDA'])[:4])
+            except:
+                item['ano'] = None
+        else:
+            item['ano'] = None
+
     # Filtros
     if ano is not None:
-        registros = [item for item in registros if int(item.get('ano', -1)) == ano]
+        registros = [
+            item for item in registros 
+            if item.get('ano') == ano
+        ]
 
     if situacao is not None:
-        registros = [item for item in registros if int(item.get('agrupamento_situacao', 999)) == situacao]
+        registros = [
+            item for item in registros 
+            if int(item.get('agrupamento_situacao', 999)) == situacao
+        ]
 
     if saldo_min is not None:
-        registros = [item for item in registros if float(item.get('valor_saldo_atualizado', 0)) >= saldo_min]
+        registros = [
+            item for item in registros 
+            if float(item.get('valor_saldo_atualizado', 0)) >= saldo_min
+        ]
 
     if saldo_max is not None:
-        registros = [item for item in registros if float(item.get('valor_saldo_atualizado', 0)) <= saldo_max]
+        registros = [
+            item for item in registros 
+            if float(item.get('valor_saldo_atualizado', 0)) <= saldo_max
+        ]
 
-# Ordenação
-    if order_by in ["ano", "saldo"]:
-        if order_by == "saldo":
-            registros.sort(
-                key=lambda x: float(x.get("valor_saldo_atualizado", 0)),
-                reverse=order_desc
+    # Ordenação
+    if order_by == "saldo":
+        registros.sort(
+            key=lambda x: float(x.get("valor_saldo_atualizado", 0)),
+            reverse=order_desc
         )
-        else:
-            registros.sort(
-                key=lambda x: int(x.get("ano", 0)),
-                reverse=order_desc
+    elif order_by == "idade":
+        registros.sort(
+            key=lambda x: int(x.get("qtde_anos_idade_cda", 0)),
+            reverse=order_desc
+        )
+    elif order_by == "ano":
+        registros.sort(
+            key=lambda x: int(x.get("ano", 0)),
+            reverse=order_desc
+        )
+    elif order_by == "numCDA":
+        registros.sort(
+            key=lambda x: str(x.get("numCDA", "")),
+            reverse=order_desc
         )
 
     return {
@@ -119,7 +151,6 @@ def search_cda(
             "order_desc": order_desc
         }
     }
-
 
 @app.get("/resumo/arquivos")
 def listar_arquivos():
