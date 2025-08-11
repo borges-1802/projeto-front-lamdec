@@ -7,10 +7,7 @@ import api from "../../services/api";
 import ChartCard from "../../components/chartCard";
 import MetricCard from "../../components/metricCard";
 import { formatCurrency } from "../../utils/valueFormat";
-import {
-  Container, MetricsGrid, DashboardGrid,
-  ErrorContainer, ErrorContent, ErrorDot, RetryButton
-} from "./styles";
+import { Container, MetricsGrid, DashboardGrid, ErrorContainer, ErrorContent, ErrorDot, RetryButton } from "./styles";
 
 interface CDAItem {
   natureza?: string;
@@ -51,7 +48,6 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Função para processar distribuição por natureza (como no backend)
   const processarDistribuicao = (registros: CDAItem[]): DistribuicaoItem[] => {
     const resultado: Record<string, {Cancelada: number, "Em cobrança": number, Quitada: number}> = {};
     
@@ -78,7 +74,6 @@ export default function Home() {
     }));
   };
 
-  // Função para processar evolução por ano (como no backend)
   const processarEvolucao = (registros: CDAItem[]): EvolucaoItem[] => {
     const acumulado: Record<number, number> = {};
     
@@ -121,7 +116,6 @@ export default function Home() {
     return resumo;
   };
 
-  // Função para calcular saldo total (como no backend)
   const calcularSaldoTotal = (registros: CDAItem[]): number => {
     const total = registros.reduce((acc, item) => {
       const valor = parseFloat(String(item.valor_saldo_atualizado || 0));
@@ -141,7 +135,6 @@ export default function Home() {
         // Buscar apenas o arquivo bruto cdas.json
         const response = await api.get("/cda/search"); // ou endpoint que retorna dados brutos
         
-        // Se não tiver esse endpoint, buscar diretamente os dados como no exemplo original
         let registros: CDAItem[] = [];
         
         if (response.data && Array.isArray(response.data.data)) {
@@ -154,7 +147,6 @@ export default function Home() {
 
         console.log(`Processando ${registros.length} registros...`);
 
-        // Processar dados usando as funções adaptadas do backend
         const distData = processarDistribuicao(registros);
         const evolucaoData = processarEvolucao(registros);
         const inscData = processarInscricoes(registros);
@@ -169,7 +161,6 @@ export default function Home() {
           total: totalCalculado
         });
 
-        // Definir estados
         setDistribuicao(distData);
         setEvolucao(evolucaoData);
         setInscricoes(inscData);
@@ -223,7 +214,6 @@ export default function Home() {
       </MetricsGrid>
 
       <DashboardGrid>
-        {/* Distribuição por Natureza */}
         <ChartCard title="Distribuição por Natureza">
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
@@ -248,7 +238,6 @@ export default function Home() {
           </ResponsiveContainer>
         </ChartCard>
 
-        {/* Evolução Anual */}
         <ChartCard title="Evolução Anual">
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={evolucao}>
@@ -260,7 +249,6 @@ export default function Home() {
           </ResponsiveContainer>
         </ChartCard>
 
-        {/* Status das Inscrições */}
         <ChartCard title="Status das Inscrições">
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={[
@@ -280,7 +268,6 @@ export default function Home() {
           </ResponsiveContainer>
         </ChartCard>
 
-        {/* Top 5 Naturezas */}
         <ChartCard title="Top 5 Naturezas">
           <ResponsiveContainer width="100%" height={300}>
             <BarChart
@@ -307,7 +294,6 @@ export default function Home() {
           </ResponsiveContainer>
         </ChartCard>
 
-        {/* Status por Natureza - Gráfico Empilhado */}
         <ChartCard title="Status por Natureza">
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={distribuicao}>

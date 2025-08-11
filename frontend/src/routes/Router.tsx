@@ -2,8 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import styled from "styled-components";
 import Header from "../components/Header";
 import Home from "../pages/Home";
-import TesteApi from "../TesteApi";
-import CdaSearch from "../pages/cdaSearch";
+import TesteApi from "../pages/TesteApi";
 import Dash2 from "../pages/claudeDash";
 
 const AppContainer = styled.div`
@@ -24,7 +23,6 @@ export default function AppRoutes() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/teste" element={<TesteApi />} />
-            <Route path="/cda" element={<CdaSearch />} />
             <Route path="/dash" element={<Dash2 />} />
           </Routes>
         </PageContainer>

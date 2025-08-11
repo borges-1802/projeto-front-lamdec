@@ -151,7 +151,6 @@ const EnhancedCdaSearch: React.FC = () => {
     setResults(sortedResults);
   };
 
-  // Componente do cabeçalho ordenável
   const SortableHeaderComponent: React.FC<{ 
     column: keyof CdaItem | 'ano', 
     children: React.ReactNode 
@@ -206,7 +205,6 @@ const EnhancedCdaSearch: React.FC = () => {
     return (score * 100).toFixed(1) + '%';
   };
 
-  // Paginação
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = results.slice(indexOfFirstItem, indexOfLastItem);
